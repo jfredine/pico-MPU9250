@@ -11,7 +11,7 @@
 #include "pico/stdlib.h"
 #include "pico/binary_info.h"
 #include "hardware/i2c.h"
-#include "hardware/timer.h"
+#include "pico/time.h"
 
 MPU9250 mpu9250;
 
