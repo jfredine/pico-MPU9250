@@ -349,7 +349,7 @@ void MPU9250::set_gyro_filter_bandwidth(mpu9250_gyro_bandwidth_t bandwidth) {
 //
 
 ak8963_mag_mode_t MPU9250::get_mag_mode(void) {
-    switch (mpu9250_i2c_read(AK8963_CNTL) & 0xf) {
+    switch (ak8963_i2c_read(AK8963_CNTL) & 0xf) {
         case 0:
             return AK8963_MODE_POWER_DOWN;
         case 1:
