@@ -34,6 +34,7 @@
 #define MPU9250_ACCEL_CONFIG      0x1C
 #define MPU9250_ACCEL_CONFIG2     0x1D
 #define MPU9250_INT_PIN_CFG       0x37
+#define MPU9250_INT_STATUS        0x3A
 #define MPU9250_WHO_AM_I          0x75
 #define MPU9250_SIGNAL_PATH_RESET 0x68
 #define MPU9250_USER_CTRL         0x6A
@@ -55,10 +56,10 @@ typedef enum {
 } mpu9250_accel_range_t;
 
 typedef enum {
-    MPU9250_RANGE_250_DEG,
-    MPU9250_RANGE_500_DEG,
-    MPU9250_RANGE_1000_DEG,
-    MPU9250_RANGE_2000_DEG,
+    MPU9250_RANGE_250_DPS,
+    MPU9250_RANGE_500_DPS,
+    MPU9250_RANGE_1000_DPS,
+    MPU9250_RANGE_2000_DPS,
 } mpu9250_gyro_range_t;
 
 typedef enum {
@@ -110,8 +111,8 @@ typedef enum {
 } ak8963_mag_mode_t;
 
 typedef enum {
-    AK8963_SENSITIVITY_14,
-    AK8963_SENSITIVITY_16
+    AK8963_SENSITIVITY_14b,
+    AK8963_SENSITIVITY_16b
 } ak8963_mag_sensitivity_t;
 
 class MPU9250 {
@@ -155,8 +156,8 @@ class MPU9250 {
     ak8963_mag_sensitivity_t get_mag_sensitivity(void);
     void set_mag_sensitivity(ak8963_mag_sensitivity_t mag_sensitivity);
 
-    int read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
-             float *temperature);
+    bool read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
+              float *temperature);
 
  private:
     float temperature_;   // Last reading's temperature (C)

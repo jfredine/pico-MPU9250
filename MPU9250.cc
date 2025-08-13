@@ -57,7 +57,7 @@ int MPU9250::init(uint8_t mpu9250_i2c_addr, uint8_t ak8963_i2c_addr,
     set_gyro_filter_bandwidth(MPU9250_GYRO_BAND_250_HZ);
     set_accel_filter_bandwidth(MPU9250_ACCEL_BAND_460_HZ);
 
-    set_gyro_range(MPU9250_RANGE_500_DEG);
+    set_gyro_range(MPU9250_RANGE_500_DPS);
 
     set_accel_range(MPU9250_RANGE_2_G);
 
@@ -78,7 +78,7 @@ int MPU9250::init(uint8_t mpu9250_i2c_addr, uint8_t ak8963_i2c_addr,
 
     // Finish setting up magnetometer
     set_mag_mode(AK8963_MODE_100HZ);
-    set_mag_sensitivity(AK8963_SENSITIVITY_16);
+    set_mag_sensitivity(AK8963_SENSITIVITY_16b);
     sleep_ms(100);
 
     return 0;
@@ -427,7 +427,7 @@ void MPU9250::set_mag_mode(ak8963_mag_mode_t new_mode) {
 ak8963_mag_sensitivity_t MPU9250::get_mag_sensitivity(void) {
     uint8_t cntl = ak8963_i2c_read(AK8963_CNTL);
     uint8_t mag_sensitivity = (cntl >> 4) & 0x1;
-    return mag_sensitivity ? AK8963_SENSITIVITY_16 : AK8963_SENSITIVITY_14;
+    return mag_sensitivity ? AK8963_SENSITIVITY_16b : AK8963_SENSITIVITY_14b;
 }
 
 //
@@ -459,77 +459,83 @@ void MPU9250::set_mag_sensitivity(ak8963_mag_sensitivity_t new_range) {
 //            temperature -- pointer to location to hold the latest temperature
 //                           reading
 //
-// Returns: success - zero
-//          failure - non-zero error code
+// Returns: true -- new data was available
+//          false -- no new data available
 //
 // Read the latest sensor data from the MPU9250 and write it to the user
 // provided structures.  Any structure pointer which is NULL will be ignored.
 //
 
-int MPU9250::read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
+bool MPU9250::read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
                   float *temperature) {
-    // get raw readings of temp, accel, and gyro
     uint8_t buffer[14];
-    mpu9250_i2c_read(MPU9250_ACCEL_XOUT_H, buffer, 14);
+    bool    new_data = false;
 
-    int16_t rawAccX, rawAccY, rawAccZ;
-    rawAccX = buffer[0] << 8 | buffer[1];
-    rawAccY = buffer[2] << 8 | buffer[3];
-    rawAccZ = buffer[4] << 8 | buffer[5];
+    // get raw readings of temp, accel, and gyro if new data is available
+    if (mpu9250_i2c_read(MPU9250_INT_STATUS) & 0x1) {
+        new_data = true;
+        mpu9250_i2c_read(MPU9250_ACCEL_XOUT_H, buffer, 14);
 
-    int16_t rawTemp;
-    rawTemp = buffer[6] << 8 | buffer[7];
+        int16_t rawAccX, rawAccY, rawAccZ;
+        rawAccX = buffer[0] << 8 | buffer[1];
+        rawAccY = buffer[2] << 8 | buffer[3];
+        rawAccZ = buffer[4] << 8 | buffer[5];
 
-    int16_t rawGyroX, rawGyroY, rawGyroZ;
-    rawGyroX = buffer[8] << 8 | buffer[9];
-    rawGyroY = buffer[10] << 8 | buffer[11];
-    rawGyroZ = buffer[12] << 8 | buffer[13];
+        int16_t rawTemp;
+        rawTemp = buffer[6] << 8 | buffer[7];
 
-    // adjust raw data for temp, accel, gyro
-    temperature_ = (rawTemp / 340.0) + 36.53;
+        int16_t rawGyroX, rawGyroY, rawGyroZ;
+        rawGyroX = buffer[8] << 8 | buffer[9];
+        rawGyroY = buffer[10] << 8 | buffer[11];
+        rawGyroZ = buffer[12] << 8 | buffer[13];
 
-    mpu9250_accel_range_t accel_range = get_accel_range();
+        // adjust raw data for temp, accel, gyro
+        temperature_ = (rawTemp / 340.0) + 36.53;
 
-    float accel_scale = 1;
-    if (accel_range == MPU9250_RANGE_16_G) {
-        accel_scale = 2048;
+        mpu9250_accel_range_t accel_range = get_accel_range();
+
+        float accel_scale = 1;
+        if (accel_range == MPU9250_RANGE_16_G) {
+            accel_scale = 2048;
+        }
+        if (accel_range == MPU9250_RANGE_8_G) {
+            accel_scale = 4096;
+        }
+        if (accel_range == MPU9250_RANGE_4_G) {
+            accel_scale = 8192;
+        }
+        if (accel_range == MPU9250_RANGE_2_G) {
+            accel_scale = 16384;
+        }
+
+        accel_.x = static_cast<float>(rawAccX) / accel_scale * MPU9250_G_TO_MPS2;
+        accel_.y = static_cast<float>(rawAccY) / accel_scale * MPU9250_G_TO_MPS2;
+        accel_.z = static_cast<float>(rawAccZ) / accel_scale * MPU9250_G_TO_MPS2;
+
+        mpu9250_gyro_range_t gyro_range = get_gyro_range();
+
+        float gyro_scale = 1;
+        if (gyro_range == MPU9250_RANGE_250_DPS) {
+            gyro_scale = 131;
+        }
+        if (gyro_range == MPU9250_RANGE_500_DPS) {
+            gyro_scale = 65.5;
+        }
+        if (gyro_range == MPU9250_RANGE_1000_DPS) {
+            gyro_scale = 32.8;
+        }
+        if (gyro_range == MPU9250_RANGE_2000_DPS) {
+            gyro_scale = 16.4;
+        }
+
+        gyro_.x = static_cast<float>(rawGyroX) / gyro_scale * MPU9250_DPS_TO_RPS;
+        gyro_.y = static_cast<float>(rawGyroY) / gyro_scale * MPU9250_DPS_TO_RPS;
+        gyro_.z = static_cast<float>(rawGyroZ) / gyro_scale * MPU9250_DPS_TO_RPS;
     }
-    if (accel_range == MPU9250_RANGE_8_G) {
-        accel_scale = 4096;
-    }
-    if (accel_range == MPU9250_RANGE_4_G) {
-        accel_scale = 8192;
-    }
-    if (accel_range == MPU9250_RANGE_2_G) {
-        accel_scale = 16384;
-    }
-
-    accel_.x = static_cast<float>(rawAccX) / accel_scale * MPU9250_G_TO_MPS2;
-    accel_.y = static_cast<float>(rawAccY) / accel_scale * MPU9250_G_TO_MPS2;
-    accel_.z = static_cast<float>(rawAccZ) / accel_scale * MPU9250_G_TO_MPS2;
-
-    mpu9250_gyro_range_t gyro_range = get_gyro_range();
-
-    float gyro_scale = 1;
-    if (gyro_range == MPU9250_RANGE_250_DEG) {
-        gyro_scale = 131;
-    }
-    if (gyro_range == MPU9250_RANGE_500_DEG) {
-        gyro_scale = 65.5;
-    }
-    if (gyro_range == MPU9250_RANGE_1000_DEG) {
-        gyro_scale = 32.8;
-    }
-    if (gyro_range == MPU9250_RANGE_2000_DEG) {
-        gyro_scale = 16.4;
-    }
-
-    gyro_.x = static_cast<float>(rawGyroX) / gyro_scale * MPU9250_DPS_TO_RPS;
-    gyro_.y = static_cast<float>(rawGyroY) / gyro_scale * MPU9250_DPS_TO_RPS;
-    gyro_.z = static_cast<float>(rawGyroZ) / gyro_scale * MPU9250_DPS_TO_RPS;
 
     // only update sensor data if the magnetometer has a new data
     if (ak8963_i2c_read(AK8963_ST1) & 0x1) {
+        new_data = true;
         ak8963_i2c_read(AK8963_HXL, buffer, 7);
 
         //  ignore new data if there was overflow
@@ -542,7 +548,7 @@ int MPU9250::read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
 
             ak8963_mag_sensitivity_t mag_sensitivity = get_mag_sensitivity();
             float mag_scale;
-            if (mag_sensitivity == AK8963_SENSITIVITY_16) {
+            if (mag_sensitivity == AK8963_SENSITIVITY_16b) {
                 // 16b sensitivity
                 mag_scale = 0.15;
             } else {
@@ -575,7 +581,7 @@ int MPU9250::read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
         *temperature = temperature_;
     }
 
-    return true;
+    return new_data;
 }
 
 //
