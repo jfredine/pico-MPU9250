@@ -16,27 +16,8 @@
 
 MPU9250 mpu9250;
 
-// Full orientation sensing using Madgwick/Mahony
-//
-// You *must* perform a magnetic calibration before this code will work.
-//
-// To view this data, use the Arduino Serial Monitor to watch the
-// scrolling angles, or run the OrientationVisualiser example in Processing.
-// Based on  https://github.com/PaulStoffregen/NXPMotionSense with adjustments
-// to Adafruit Unified Sensor interface
-
-
-#define MAHONY
-#ifdef MAHONY
-#include "Mahony.h"
-Mahony filter;    // faster but less accurate
-#else
-#include "Madgwick.h"
-Madgwick filter;  // slower but more accurate
-#endif
-
 #define FILTER_UPDATE_RATE_HZ 100
-#define PRINT_EVERY_N_UPDATES 10
+#define PRINT_EVERY_N_UPDATES 50
 
 typedef struct {
     MPU9250::tuple<float> mag_hard_iron;  // MotionCal Magnetic Offset
@@ -77,7 +58,10 @@ int main() {
     gpio_put(PICO_DEFAULT_SPI_CSN_PIN, 1);
     bi_decl(bi_1pin_with_name(PICO_DEFAULT_SPI_CSN_PIN, "SPI CS"));
 
-    int retval = mpu9250.init(spi_default);
+    bool aux_auto_sample = true;
+    int retval = mpu9250.init(spi_default,
+                              PICO_DEFAULT_SPI_CSN_PIN, AK8963_I2CADDR_DEFAULT,
+                              aux_auto_sample);
 #else
     i2c_init(i2c_default, 400000);
     gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
@@ -87,7 +71,11 @@ int main() {
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN,
                                PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
 
-    int retval = mpu9250.init(i2c_default);
+    bool i2c_aux_master = true;
+    bool aux_auto_sample = true;
+    int retval = mpu9250.init(i2c_default,
+                              MPU9250_I2CADDR_DEFAULT, AK8963_I2CADDR_DEFAULT,
+                              i2c_aux_master, aux_auto_sample);
 #endif
 
     if (retval != 0) {
@@ -138,25 +126,20 @@ int main() {
         accel.y -= sensor_adj.accel.y;
         accel.z -= sensor_adj.accel.z;
 
-        // Update the AHRS fusion filter
-        filter.update(gyro.x, gyro.y, gyro.z,
-                      accel.x, accel.y, accel.z,
-                      mag.x, mag.y, mag.z,
-                      1.0 / FILTER_UPDATE_RATE_HZ);
-
         // print the output less often to avoid overloading the serial interface
         if (counter++ >= PRINT_EVERY_N_UPDATES) {
             counter = 0;
 
-            // print the orientation in euler angles and quaternions
-            float roll = filter.get_roll();
-            float pitch = filter.get_pitch();
-            float heading = filter.get_yaw();
-            printf("Orientation: %.2f, %.2f, %.2f\n", heading, pitch, roll);
-
-            float qw, qx, qy, qz;
-            filter.get_quaternion(&qw, &qx, &qy, &qz);
-            printf("Quaternion: %.4f, %.4f, %.4f, %.4f\n", qw, qx, qy, qz);
+#ifdef MPU9250_SPI
+            printf("aux_auto_sample = %s\n",
+                    aux_auto_sample ? "true" : "false");
+#else
+            printf("i2c_aux_master: %s, aux_auto_sample = %s\n",
+                    i2c_aux_master ? "true" : "false",
+                    aux_auto_sample ? "true" : "false");
+#endif
+            printf("Accel: %.2f, %.2f, %.2f\n", accel.x, accel.y, accel.z);
+            printf("Mag: %.2f, %.2f, %.2f\n\n", mag.x, mag.y, mag.z);
         }
 
         sleep_us( 1000000 / FILTER_UPDATE_RATE_HZ);
