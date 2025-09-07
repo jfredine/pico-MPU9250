@@ -9,24 +9,42 @@
 // Copyright 2025  John Fredine
 //
 
+#include "MPU9250.h"
 
 #include <stdio.h>
 #include <stdint.h>
-#include <pico/stdio.h>
-#include <pico/binary_info.h>
-#include <hardware/i2c.h>
-#include <hardware/gpio.h>
-#include <MPU9250.h>
+#include "hardware/gpio.h"
+#include "hardware/i2c.h"
+#include "hardware/spi.h"
+#include "pico/binary_info.h"
+#include "pico/stdio.h"
+#include "pico/time.h"
 
 MPU9250 mpu9250;
 
 int main() {
-    sleep_ms(1000);
     bi_decl(bi_program_description("MPU9250 sensor calibration example"));
 
     stdio_init_all();
 
-    i2c_init(i2c_default, 100000);
+#ifdef MPU9250_SPI
+    spi_init(spi_default, 1000000);
+    gpio_set_function(PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI);
+    gpio_set_function(PICO_DEFAULT_SPI_RX_PIN, GPIO_FUNC_SPI);
+    gpio_set_function(PICO_DEFAULT_SPI_TX_PIN, GPIO_FUNC_SPI);
+    bi_decl(bi_3pins_with_func(PICO_DEFAULT_SPI_SCK_PIN,
+                               PICO_DEFAULT_SPI_RX_PIN,
+                               PICO_DEFAULT_SPI_TX_PIN,
+                               GPIO_FUNC_SPI));
+
+    gpio_init(PICO_DEFAULT_SPI_CSN_PIN);
+    gpio_set_dir(PICO_DEFAULT_SPI_CSN_PIN, GPIO_OUT);
+    gpio_put(PICO_DEFAULT_SPI_CSN_PIN, 1);
+    bi_decl(bi_1pin_with_name(PICO_DEFAULT_SPI_CSN_PIN, "SPI CS"));
+
+    int retval = mpu9250.init(spi_default);
+#else
+    i2c_init(i2c_default, 400000);
     gpio_set_function(PICO_DEFAULT_I2C_SDA_PIN, GPIO_FUNC_I2C);
     gpio_set_function(PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C);
     gpio_pull_up(PICO_DEFAULT_I2C_SDA_PIN);
@@ -34,29 +52,8 @@ int main() {
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN,
                                PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
 
-    int retval = mpu9250.init();
-
-    // scan the bus
-    printf("\nI2C Bus Scan\n");
-    printf("   0  1  2  3  4  5  6  7  8  9  A  B  C  D  E  F\n");
-
-    for (int addr = 0; addr < (1 << 7); ++addr) {
-        if (addr % 16 == 0) {
-            printf("%02x ", addr);
-        }
-
-        int ret;
-        if ((addr & 0x78) == 0 || (addr & 0x78) == 0x78) {
-            // Skip over any reserved addresses.
-            ret = -1;
-        } else {
-            uint8_t rxdata;
-            ret = i2c_read_blocking(i2c_default, addr, &rxdata, 1, false);
-        }
-
-        putchar(ret < 0 ? '.' : '@');
-        printf(((addr % 16) == 15) ? "\n" : "  ");
-    }
+    int retval = mpu9250.init(i2c_default);
+#endif
 
     if (retval != 0) {
         if (retval == 1) {
@@ -77,7 +74,7 @@ int main() {
     MPU9250::tuple<float> accel, gyro, mag;
     float temperature;
 
-    while(1) {
+    while (1) {
         mpu9250.read(&accel, &gyro, &mag, &temperature);
 
         printf("Raw:%d,%d,%d,%d,%d,%d,%d,%d,%d\n",

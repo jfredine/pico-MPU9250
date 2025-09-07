@@ -164,7 +164,7 @@ typedef enum {
     MPU9250_ACCEL_BAND_20_HZ,
     MPU9250_ACCEL_BAND_10_HZ,
     MPU9250_ACCEL_BAND_5_HZ,
-    MPU9250_ACCEL_BAND_1130_HZ = 0b1000,
+    MPU9250_ACCEL_BAND_1130_HZ = 0b1000
 } mpu9250_accel_bandwidth_t;
 
 // AK8963 magnetometer
@@ -228,10 +228,6 @@ class MPU9250 {
              uint8_t ak8963_i2c_addr = AK8963_I2CADDR_DEFAULT,
              bool aux_auto_sample = true);
 
-    void set_i2c_bypass(bool bypass);
-    void set_i2c_disable(bool disable);
-    void config_i2c_slave_sample(void);
-
     mpu9250_clock_select_t get_clock(void);
     void set_clock(mpu9250_clock_select_t);
 
@@ -256,7 +252,7 @@ class MPU9250 {
     bool read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
               float *temperature);
 
-    void dump_regs();
+    void dump_regs(void);
 
  private:
     typedef struct reg_s {
@@ -282,6 +278,10 @@ class MPU9250 {
     bool aux_auto_sample_;
 
     int common_init(void);
+
+    void set_i2c_bypass(bool bypass);
+    void set_i2c_disable(bool disable);
+    void config_i2c_slave_sample(void);
 
     uint8_t mpu9250_read(uint8_t reg_addr);
     bool mpu9250_read(uint8_t reg_addr, uint8_t *buffer, size_t len);

@@ -169,7 +169,7 @@ MPU9250::~MPU9250(void) {}
 //
 // Returns: Nothing
 //
-// Dump all registers of the MPU9250 and AK8963
+// Dump the values of all registers of the MPU9250 and AK8963 to stdout
 //
 
 void MPU9250::dump_regs() {
@@ -195,7 +195,7 @@ void MPU9250::dump_regs() {
 // Arguments: i2c -- pointer to I2C object used to access the I2C bus
 //            mpu9250_i2c_addr -- Address of MPU9250 on the I2C bus
 //            ak8963_i2c_addr -- Address of AK8963 on the I2C bus
-//            i2c_aux_master -- Use MPU9250 as auxilliary i2c bus master
+//            i2c_aux_master -- Use MPU9250 as auxiliary i2c bus master
 //                              as opposed to i2c pass-through.
 //            aux_auto_sample -- Autosample the aux i2c bus
 //                               as opposed to manual sample.
@@ -351,7 +351,7 @@ int MPU9250::common_init() {
 // Returns: Nothing
 //
 // Enable or disable the I2C bypass on the MPU9250.  When bypass is enabled
-// the auxilliary I2C pins of the MPU9250 are electrically connected to the
+// the auxiliary I2C pins of the MPU9250 are electrically connected to the
 // primary I2C pins and the AK8963 becomes visible from the primary I2C bus.
 //
 
@@ -489,7 +489,7 @@ mpu9250_accel_range_t MPU9250::get_accel_range(void) {
 // Returns: Nothing
 //
 // Program the MPU9250 to the user specified range.  The range should be
-// of the enumberated values of type mpu9250_accel_range_t
+// one of the enumberated values of type mpu9250_accel_range_t
 //
 
 void MPU9250::set_accel_range(mpu9250_accel_range_t new_range) {
@@ -527,7 +527,7 @@ mpu9250_gyro_range_t MPU9250::get_gyro_range(void) {
 // Returns: Nothing
 //
 // Program the MPU9250 to the user specified range.  The range should be
-// of the enumberated values of type mpu9250_gyro_range_t
+// one of the enumerated values of type mpu9250_gyro_range_t
 //
 
 void MPU9250::set_gyro_range(mpu9250_gyro_range_t new_range) {

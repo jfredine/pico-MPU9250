@@ -14,8 +14,17 @@ pico_sdk_init()
 
 add_executable(calibration main.cc)
 
+pico_enable_stdio_uart(calibration 1)
+pico_enable_stdio_usb(calibration 0)
+
 add_subdirectory(../.. MPU9250)
 
+# create map/bin/hex/uf2 file etc.
 pico_add_extra_outputs(calibration)
 
-target_link_libraries(calibration pico_stdlib MPU9250)
+target_link_libraries(calibration hardware_gpio hardware_i2c hardware_spi pico_binary_info pico_stdio pico_time MPU9250)
+
+set(MPU9250_BUS "I2C" CACHE STRING "Select I2C or SPI bus for accessing MPU9250")
+if (MPU9250_BUS MATCHES "^SPI$")
+    add_compile_definitions(MPU9250_SPI=1)
+endif()

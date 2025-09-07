@@ -8,10 +8,11 @@
 
 #include <stdio.h>
 #include <stdint.h>
-#include "pico/stdlib.h"
-#include "pico/binary_info.h"
+#include "hardware/gpio.h"
 #include "hardware/i2c.h"
 #include "hardware/spi.h"
+#include "pico/binary_info.h"
+#include "pico/stdio.h"
 #include "pico/time.h"
 
 MPU9250 mpu9250;
@@ -26,8 +27,7 @@ MPU9250 mpu9250;
 // to Adafruit Unified Sensor interface
 
 
-#define MAHONY
-#ifdef MAHONY
+#ifdef AHRS_MAHONY
 #include "Mahony.h"
 Mahony filter;    // faster but less accurate
 #else
@@ -50,10 +50,10 @@ typedef struct {
 } sensor_adj_t;
 
 // plug in the values found in MotionCal here.
-sensor_adj_t sensor_adj = {{15.75, 23.12, 33.59},
-                           {{  0.951, -0.010,  0.014},
-                            { -0.010,  0.961, -0.007},
-                            {  0.014, -0.007,  1.094}},
+sensor_adj_t sensor_adj = {{-7.63, 11.07, 5.60},
+                           {{  0.907, -0.019,  0.061},
+                            { -0.019,  0.988,  0.014},
+                            {  0.061, -0.014,  1.121}},
                            {0.0, 0.0, 0.0},
                            {0.0, 0.0, 0.0}};
 
