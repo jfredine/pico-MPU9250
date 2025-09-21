@@ -1,4 +1,5 @@
 # Calibration
+
 This is example code for use of an MPU9250 9-DoF accelerometer, gyro,
 and magnetometer.  It will output data usable with the
 [calibration program](https://www.pjrc.com/store/prop_shield.html) from

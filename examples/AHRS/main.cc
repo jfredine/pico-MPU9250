@@ -62,7 +62,7 @@ int main() {
 
     stdio_init_all();
 
-#ifdef MPU9250_SPI
+#ifdef IFC_SPI
     spi_init(spi_default, 1000000);
     gpio_set_function(PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI);
     gpio_set_function(PICO_DEFAULT_SPI_RX_PIN, GPIO_FUNC_SPI);

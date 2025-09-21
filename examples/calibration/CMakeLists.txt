@@ -24,7 +24,7 @@ pico_add_extra_outputs(calibration)
 
 target_link_libraries(calibration hardware_gpio hardware_i2c hardware_spi pico_binary_info pico_stdio pico_time MPU9250)
 
-set(MPU9250_BUS "I2C" CACHE STRING "Select I2C or SPI bus for accessing MPU9250")
-if (MPU9250_BUS MATCHES "^SPI$")
-    add_compile_definitions(MPU9250_SPI=1)
+set(IFC_BUS "I2C" CACHE STRING "Select I2C or SPI bus for accessing the sensor")
+if (IFC_BUS MATCHES "^SPI$")
+    add_compile_definitions(IFC_SPI=1)
 endif()

@@ -27,7 +27,7 @@ int main() {
 
     stdio_init_all();
 
-#ifdef MPU9250_SPI
+#ifdef IFC_SPI
     spi_init(spi_default, 1000000);
     gpio_set_function(PICO_DEFAULT_SPI_SCK_PIN, GPIO_FUNC_SPI);
     gpio_set_function(PICO_DEFAULT_SPI_RX_PIN, GPIO_FUNC_SPI);
@@ -52,7 +52,10 @@ int main() {
     bi_decl(bi_2pins_with_func(PICO_DEFAULT_I2C_SDA_PIN,
                                PICO_DEFAULT_I2C_SCL_PIN, GPIO_FUNC_I2C));
 
-    int retval = mpu9250.init(i2c_default);
+    int retval = mpu9250.init(i2c_default,
+                              MPU9250_I2CADDR_DEFAULT,
+                              AK8963_I2CADDR_DEFAULT,
+                              true, false);
 #endif
 
     if (retval != 0) {

@@ -161,7 +161,6 @@ MPU9250::MPU9250(void) {
 
 MPU9250::~MPU9250(void) {}
 
-
 //
 // MPU9250::dump_regs
 //
@@ -276,10 +275,6 @@ int MPU9250::init(spi_inst_t *spi,
 //
 
 int MPU9250::common_init() {
-    if (spi_) {
-        set_i2c_disable(true);
-    }
-
     // reset the MPU9250
     mpu9250_write(MPU9250_PWR_MGMT_1, 0x80);
     sleep_ms(100);
@@ -295,27 +290,22 @@ int MPU9250::common_init() {
         return 2;
     }
 
+    // bring the chip out of sleep and set the clock to best choice
+    mpu9250_write(MPU9250_PWR_MGMT_1, 0x01);
+
+    // Set up access to the AK8963
     set_i2c_bypass(bypass_);
+
+    // verify that the AK8963 is present
+    if (ak09916_read(AK09916_WIA) != AK8963_DEVICE_ID) {
+        return 3;
+    }
 
     // reset the AK8963
     ak8963_write(AK8963_CNTL2, 0x1);
     while (ak8963_read(AK8963_CNTL2) & 0x1) {
         sleep_ms(1);
     }
-
-    if (ak8963_read(AK8963_WHO_AM_I) != AK8963_DEVICE_ID) {
-        return 3;
-    }
-
-    set_gyro_filter_bandwidth(MPU9250_GYRO_BAND_184_HZ);
-    set_accel_filter_bandwidth(MPU9250_ACCEL_BAND_184_HZ);
-
-    set_gyro_range(MPU9250_RANGE_500_DPS);
-
-    set_accel_range(MPU9250_RANGE_2_G);
-
-    // set clock config to PLL with Gyro X reference
-    mpu9250_write(MPU9250_PWR_MGMT_1, 0x01);
 
     // enter fuse access mode of mag which is required to read adjustment data
     set_mag_mode(AK8963_MODE_FUSE_ROM);
@@ -331,7 +321,6 @@ int MPU9250::common_init() {
 
     // Finish setting up magnetometer
     set_mag_mode(AK8963_MODE_100HZ);
-    set_mag_sensitivity(AK8963_SENSITIVITY_16b);
     sleep_ms(100);
 
     // Set up MPU9250 I2C master
@@ -357,20 +346,32 @@ int MPU9250::common_init() {
 
 void MPU9250::set_i2c_bypass(bool bypass) {
     bypass_ = bypass;
+
+    // set or clear bypass
     uint8_t u = mpu9250_read(MPU9250_INT_PIN_CFG);
     u = (u & ~(1 << 1)) | (bypass << 1);
     mpu9250_write(MPU9250_INT_PIN_CFG, u);
 
+    // enable or disable secondary I2C master
     u = mpu9250_read(MPU9250_USER_CTRL);
     u = (u & ~(1 << 5)) | (!bypass << 5);
     mpu9250_write(MPU9250_USER_CTRL, u);
+
+    // program secondary I2C bus if it is enabled
+    if (!bypass) {
+        // set I2C master clock frequency to 400kHz
+        u = mpu9250_read(MPU9250_I2C_MST_CTRL);
+        u &= ~0xf;
+        u |= 13;
+        mpu9250_write(MPU9250_I2C_MST_CTRL, u);
+    }
 }
 
 //
 //
 // MPU9250::set_i2c_disable
 //
-// Arguments: disable -- Disable or enable the interface
+// Arguments: disable -- Disable or enable the primary I2C interface
 //
 // Returns: Nothing
 //
@@ -395,22 +396,12 @@ void MPU9250::set_i2c_disable(bool disable) {
 //
 
 void MPU9250::config_i2c_slave_sample(void) {
+    uint8_t u;
     // disable sampling
     mpu9250_write(MPU9250_I2C_SLV0_CTRL, 0x00);
 
-    // disable using fifo for sensor reads
-    uint8_t u = mpu9250_read(MPU9250_FIFO_EN);
-    u &= ~0x1;
-    mpu9250_write(MPU9250_FIFO_EN, u);
-
-    // set I2C clock to 400MHz
-    u = mpu9250_read(MPU9250_I2C_MST_CTRL);
-    u &= ~0xf;
-    u |= 13;
-    mpu9250_write(MPU9250_I2C_MST_CTRL, u);
-
     // decrease sample rate to something faster than the mag sensor update
-    // rate (100Hz) but not obnoxiously fast.  Only valid if DLPF is active
+    // rate (100Hz max) but not obnoxiously fast.  Only valid if DLPF is active
     mpu9250_gyro_bandwidth_t bw = get_gyro_filter_bandwidth();
     if ((bw != MPU9250_GYRO_BAND_3600_HZ)
             && (bw != MPU9250_GYRO_BAND_8800_HZ)) {
@@ -442,7 +433,15 @@ void MPU9250::config_i2c_slave_sample(void) {
 
 mpu9250_clock_select_t MPU9250::get_clock(void) {
     uint8_t pwr_mgmt = mpu9250_read(MPU9250_PWR_MGMT_1);
-    return (mpu9250_clock_select_t)(pwr_mgmt & 0x7);
+    switch (pwr_mgmt & 0x7) {
+    case 0:
+    case 6:
+        return MPU9250_INTERNAL_20MHZ;
+    case 7:
+        return MPU9250_STOP;
+    default:
+        return MPU9250_PLL;
+    }
 }
 
 //
@@ -643,19 +642,19 @@ void MPU9250::set_gyro_filter_bandwidth(mpu9250_gyro_bandwidth_t bandwidth) {
 
 ak8963_mag_mode_t MPU9250::get_mag_mode(void) {
     switch (ak8963_read(AK8963_CNTL1) & 0xf) {
-        case 0:
+        case 0x00:
             return AK8963_MODE_POWER_DOWN;
-        case 1:
+        case 0x01:
             return AK8963_MODE_SINGLE;
-        case 2:
+        case 0x02:
             return AK8963_MODE_8HZ;
-        case 4:
+        case 0x04:
             return AK8963_MODE_EXT_TRIG;
-        case 6:
+        case 0x06:
             return AK8963_MODE_100HZ;
-        case 8:
+        case 0x08:
             return AK8963_MODE_SELF_TEST;
-        case 15:
+        case 0x0f:
             return AK8963_MODE_FUSE_ROM;
         default:
             return AK8963_MODE_POWER_DOWN;
@@ -901,15 +900,8 @@ bool MPU9250::read(tuple<float> *accel, tuple<float> *gyro, tuple<float> *mag,
 
 uint8_t MPU9250::mpu9250_read(uint8_t reg_addr) {
     uint8_t data;
-    if (i2c_) {
-        if (!i2c_read(i2c_, mpu9250_i2c_addr_, reg_addr, &data, 1)) {
-            return 0;
-        }
-    } else {
-        if (!spi_read(spi_, mpu9250_spi_csn_, reg_addr, &data, 1)) {
-            return 0;
-        }
-    }
+
+    mpu9250_read(reg_addr, &data, 1);
 
     return data;
 }
@@ -955,13 +947,7 @@ bool MPU9250::mpu9250_read(uint8_t reg_addr, uint8_t *buffer, size_t len) {
 uint8_t MPU9250::ak8963_read(uint8_t reg_addr) {
     uint8_t data;
 
-    if (bypass_) {
-        if (!i2c_read(i2c_, ak8963_i2c_addr_, reg_addr, &data, 1)) {
-            return 0;
-        }
-    } else {
-        ak8963_read(reg_addr, &data, 1);
-    }
+    ak8963_read(reg_addr, &data, 1);
 
     return data;
 }
@@ -1028,11 +1014,7 @@ bool MPU9250::ak8963_read(uint8_t reg_addr, uint8_t *buffer, size_t len) {
 //
 
 void MPU9250::mpu9250_write(uint8_t reg_addr, uint8_t data) {
-    if (i2c_) {
-        i2c_write(i2c_, mpu9250_i2c_addr_, reg_addr, &data, 1);
-    } else {
-        spi_write(spi_, mpu9250_spi_csn_, reg_addr, &data, 1);
-    }
+    mpu9250_write(reg_addr, &data, 1);
 }
 
 //
@@ -1072,11 +1054,7 @@ bool MPU9250::mpu9250_write(uint8_t reg_addr, const uint8_t *buffer,
 //
 
 void MPU9250::ak8963_write(uint8_t reg_addr, uint8_t data) {
-    if (bypass_) {
-        i2c_write(i2c_, ak8963_i2c_addr_, reg_addr, &data, 1);
-    } else {
-        ak8963_write(reg_addr, &data, 1);
-    }
+    ak8963_write(reg_addr, &data, 1);
 }
 
 //

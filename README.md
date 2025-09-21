@@ -1,4 +1,5 @@
 # pico-MPU9250
+
 This is a library for using the MPU9250 9-DoF accelerometer, gyro,
 and magnetometer with the Raspberry Pi Pico SDK.  It supports the I2C and
 SPI interfaces.  The API is described below.  See the
@@ -6,6 +7,7 @@ SPI interfaces.  The API is described below.  See the
 
 ## API
 ### MPU9250()
+
 The API is based on an object of the class MPU9250.  The first step in using
 the API is to create an object of this class.  The constructor does basic
 initialization and should b e followed by the init() method.
@@ -21,6 +23,7 @@ initialization and should b e followed by the init() method.
 | Nothing      |      |
 
 ### init()
+
 The init function must be called before any other function in the API.  It has
 two versions to support I2C and SPI.  The user must initialize the I2C or SPI
 system before calling init().
@@ -65,7 +68,7 @@ system before calling init().
     typedef enum clock_select {
         MPU9250_INTERNAL_20MHz,
         MPU9250_PLL,
-        MPU9250_STOP = 7,
+        MPU9250_STOP = 7
     } mpu9250_clock_select_t;
 
 ### get_clock()
@@ -102,10 +105,10 @@ enumerated values of type mpu9250_clock_select_t.
 ### mpu9250_accel_range_t
 
     typedef enum {
-        MPU9250_RANGE_2_G = 0b00,
-        MPU9250_RANGE_4_G = 0b01,
-        MPU9250_RANGE_8_G = 0b10,
-        MPU9250_RANGE_16_G = 0b11,
+        MPU9250_RANGE_2_G,
+        MPU9250_RANGE_4_G,
+        MPU9250_RANGE_8_G,
+        MPU9250_RANGE_16_G
     } mpu9250_accel_range_t;
 
 ### get_accel_range()
@@ -144,7 +147,7 @@ the enumerated values of type mpu9250_accel_range_t
         MPU9250_RANGE_250_DPS,
         MPU9250_RANGE_500_DPS,
         MPU9250_RANGE_1000_DPS,
-        MPU9250_RANGE_2000_DPS,
+        MPU9250_RANGE_2000_DPS
     } mpu9250_gyro_range_t;
 
 ### get_gyro_range()
@@ -206,6 +209,7 @@ of type mpu9250_accel_bandwidth_t
 |              | The accelerometer bandwidth setting |
 
 ### set_accel_filter_bandwidth()
+
 Program the accelerometer filter bandwidth as one of the enumerated values of
 type mpu9250_accel_bandwidth_t
 
@@ -220,6 +224,7 @@ type mpu9250_accel_bandwidth_t
 | Nothing      |             |
 
 ### mpu9250_gyro_bandwidth_t
+
     typedef enum {
         MPU9250_GYRO_BAND_250_HZ,    
         MPU9250_GYRO_BAND_184_HZ,
@@ -247,7 +252,6 @@ mpu9250_gyro_bandwidth_t
 |--------------|-------------|
 |              | The gyro bandwidth setting |
 
-
 ### set_gyro_filter_bandwidth()
 
     MPU9250::set_gyro_filter_bandwidth(mpu9250_gyro_bandwidth_t bandwidth);
@@ -261,6 +265,7 @@ mpu9250_gyro_bandwidth_t
 | Nothing      |             |
 
 ### ak8963_mag_mode_t
+
     typedef enum {
         AK8963_MODE_POWER_DOWN,
         AK8963_MODE_SINGLE,

@@ -1,4 +1,5 @@
 # Attitude and heading reference system (AHRS)
+
 This is example code for use of an MPU9250 9-DoF accelerometer, gyro,
 and magnetometer.  It will output orientation data usable with the
 [Adafruit 3D Model Viewer](https://adafruit.github.io/Adafruit_WebSerial_3DModelViewer/)
@@ -30,7 +31,7 @@ The cmake command for the example should be of the form:
 
     cmake -DPICO_PLATFORM=<rp2350|rp2040> \
           -DPICO_BOARD=<pico|pico_w|pico2|pico2_w> \
-          -DMPU9250_BUS=<I2C|SPI> \
+          -DIFC_BUS=<I2C|SPI> \
           -DAHRS_ALGO=<MADGWICK|MAHONY> \
           <path to library>/pico-MPU9250/examples/AHRS
 
@@ -40,6 +41,6 @@ library is located at /home/jfredine/pico-MPU9250, the command would be:
 
     cmake -DPICO_PLATFORM=rp2350 \
           -DPICO_BOARD=pico2_w \
-          -DMPU9250_BUS=SPI \
+          -DIFC_BUS=SPI \
           -DAHRS_ALGO=MAHONY \
           /home/jfredine/pico-MPU9250/examples/AHRS

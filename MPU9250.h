@@ -125,23 +125,16 @@
 #define MPU9250_ZA_OFFSET_L        0x7E
 
 typedef enum clock_select {
-    MPU9250_INTERNAL_20MHz,
+    MPU9250_INTERNAL_20MHZ,
     MPU9250_PLL,
-    MPU9250_STOP = 7,
+    MPU9250_STOP = 7
 } mpu9250_clock_select_t;
-
-typedef enum {
-    MPU9250_RANGE_2_G = 0b00,
-    MPU9250_RANGE_4_G = 0b01,
-    MPU9250_RANGE_8_G = 0b10,
-    MPU9250_RANGE_16_G = 0b11,
-} mpu9250_accel_range_t;
 
 typedef enum {
     MPU9250_RANGE_250_DPS,
     MPU9250_RANGE_500_DPS,
     MPU9250_RANGE_1000_DPS,
-    MPU9250_RANGE_2000_DPS,
+    MPU9250_RANGE_2000_DPS
 } mpu9250_gyro_range_t;
 
 typedef enum {
@@ -153,8 +146,15 @@ typedef enum {
     MPU9250_GYRO_BAND_10_HZ,
     MPU9250_GYRO_BAND_5_HZ,
     MPU9250_GYRO_BAND_3600_HZ,
-    MPU9250_GYRO_BAND_8800_HZ,
+    MPU9250_GYRO_BAND_8800_HZ
 } mpu9250_gyro_bandwidth_t;
+
+typedef enum {
+    MPU9250_RANGE_2_G,
+    MPU9250_RANGE_4_G,
+    MPU9250_RANGE_8_G,
+    MPU9250_RANGE_16_G
+} mpu9250_accel_range_t;
 
 typedef enum {
     MPU9250_ACCEL_BAND_460_HZ,
