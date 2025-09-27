@@ -5,6 +5,8 @@ and magnetometer with the Raspberry Pi Pico SDK.  It supports the I2C and
 SPI interfaces.  The API is described below.  See the
 [examples](examples/README.md) for sample usage of the API.
 
+![debug setup](images/debug.png "pico2_w wired to MPU9250 breakout board with pico acting as debug probe")
+
 ## API
 ### MPU9250()
 
